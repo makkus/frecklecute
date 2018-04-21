@@ -4,10 +4,8 @@
 """Tests for `frecklecute` package."""
 
 import pytest
-
 from click.testing import CliRunner
 
-from frecklecute import frecklecute
 from frecklecute import cli
 
 

@@ -3,26 +3,16 @@
 from __future__ import absolute_import, division, print_function
 
 import logging
-import os
-import sys
-
-import click
-import click_completion
-import click_log
-import copy
-import nsbl
-import shutil
-import yaml
 from collections import OrderedDict
-from six import string_types
-from pprint import pprint
+
+import yaml
 from frkl import frkl
-from luci import Lucifier, DictletReader, DictletFinder, vars_file, TextFileDictletReader, parse_args_dict, output, JINJA_DELIMITER_PROFILES, replace_string, ordered_load, clean_user_input, readable_json
-from . import print_version
+from six import string_types
+
+from freckles.freckles_base_cli import create_external_task_list_callback, get_task_list_format
 from freckles.freckles_defaults import *
-from freckles.utils import DEFAULT_FRECKLES_CONFIG, download_extra_repos, HostType, print_repos_expand, expand_repos,  create_and_run_nsbl_runner, freckles_jinja_extensions, download_repos
-from freckles.freckles_base_cli import FrecklesBaseCommand, FrecklesLucifier, process_extra_task_lists, create_external_task_list_callback, get_task_list_format, parse_tasks_dictlet
-from .utils import print_task_list_details, find_frecklecutable_dirs, is_frecklecutable, find_frecklecutables_in_folder, FrecklecutableFinder, FrecklecutableReader
+from freckles.utils import create_and_run_nsbl_runner
+from .utils import print_task_list_details
 
 log = logging.getLogger("freckles")
 

@@ -1,0 +1,3 @@
+[submodule "frecklecute/external/frecklecutables"]
+	path = frecklecute/external/frecklecutables
+	url = https://github.com/freckles-io/frecklecutables.git

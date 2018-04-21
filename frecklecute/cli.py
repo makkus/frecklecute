@@ -5,27 +5,21 @@
 from __future__ import absolute_import, division, print_function
 
 import logging
-import os
 import sys
+from collections import OrderedDict
 
-import click
 import click_completion
 import click_log
-import copy
-import nsbl
-import shutil
 import yaml
-from collections import OrderedDict
-from six import string_types
-from pprint import pprint
 from frkl import frkl
-from luci import Lucifier, DictletReader, DictletFinder, vars_file, TextFileDictletReader, parse_args_dict, output, JINJA_DELIMITER_PROFILES, replace_string, ordered_load, clean_user_input, readable_json
-from . import print_version
+from luci import JINJA_DELIMITER_PROFILES, ordered_load, replace_string
+
+from freckles.freckles_base_cli import FrecklesBaseCommand, process_extra_task_lists
 from freckles.freckles_defaults import *
-from freckles.utils import DEFAULT_FRECKLES_CONFIG, download_extra_repos, HostType, print_repos_expand, expand_repos,  create_and_run_nsbl_runner, freckles_jinja_extensions, download_repos
-from freckles.freckles_base_cli import FrecklesBaseCommand, FrecklesLucifier, process_extra_task_lists, create_external_task_list_callback, get_task_list_format, parse_tasks_dictlet
-from .frecklecute import Frecklecute
-from .utils import print_task_list_details, find_frecklecutable_dirs, is_frecklecutable, find_frecklecutables_in_folder, FrecklecutableFinder, FrecklecutableReader
+from freckles.utils import DEFAULT_FRECKLES_CONFIG, freckles_jinja_extensions
+from . import print_version
+from .frecklecute import Frecklecutable, Frecklecute
+from .utils import FrecklecutableFinder, FrecklecutableReader
 
 log = logging.getLogger("freckles")
 click_log.basic_config(log)
@@ -33,14 +27,13 @@ click_log.basic_config(log)
 # optional shell completion
 click_completion.init()
 
-# TODO: this is a bit ugly, probably have refactor how role repos are used
-# nsbl.defaults.DEFAULT_ROLES_PATH = os.path.join(os.path.dirname(__file__), "external", "default_role_repo")
-
 VARS_HELP = "variables to be used for templating, can be overridden by cli options if applicable"
 DEFAULTS_HELP = "default variables, can be used instead (or in addition) to user input via command-line parameters"
 KEEP_METADATA_HELP = "keep metadata in result directory, mostly useful for debugging"
 FRECKLECUTE_EPILOG_TEXT = "frecklecute is free and open source software and part of the 'freckles' project, for more information visit: https://docs.freckles.io"
 
+DEFAULT_FRECKLECUTABLES_PATH = os.path.join(os.path.dirname(__file__), "external", "frecklecutables")
+DEFAULT_USER_FRECKLECUTABLES_PATH = os.path.join(os.path.expanduser("~"), ".freckles", "frecklecutables")
 
 
 class FrecklecuteCommand(FrecklesBaseCommand):
@@ -48,7 +41,10 @@ class FrecklecuteCommand(FrecklesBaseCommand):
 
     def __init__(self, extra_params=None, print_version_callback=print_version, **kwargs):
 
-        super(FrecklecuteCommand, self).__init__(extra_params=extra_params, print_version_callback=print_version, **kwargs)
+        config = DEFAULT_FRECKLES_CONFIG
+        config.add_repo(DEFAULT_FRECKLECUTABLES_PATH)
+        config.add_user_repo(DEFAULT_USER_FRECKLECUTABLES_PATH)
+        super(FrecklecuteCommand, self).__init__(config=config, extra_params=extra_params, print_version_callback=print_version, **kwargs)
 
     def get_dictlet_finder(self):
 
@@ -91,7 +87,7 @@ class FrecklecuteCommand(FrecklesBaseCommand):
 
         replaced_tasks = replace_string(tasks_string, temp_new_all_vars, additional_jinja_extensions=freckles_jinja_extensions, **JINJA_DELIMITER_PROFILES["luci"])
         try:
-            tasks_list = ordered_load(replaced_tasks)
+            tasks_list_temp = ordered_load(replaced_tasks)
         except (Exception) as e:
             raise click.ClickException("Could not parse frecklecutable '{}': {}".format(command_name, e))
 
@@ -107,7 +103,7 @@ class FrecklecuteCommand(FrecklesBaseCommand):
             if name in temp_new_all_vars and details.get("is_var", False) == True:
                 result_vars[name] = temp_new_all_vars[name]
 
-        f = Frecklecutable(command_name, tasks_list, result_vars, tasks_format=task_list_format, external_task_list_map=extra_task_lists_map, additional_roles=additional_roles, tasks_string=tasks_string)
+        f = Frecklecutable(command_name, replaced_tasks, result_vars, tasks_format=task_list_format, external_task_list_map=extra_task_lists_map, additional_roles=additional_roles)
 
         # placeholder, for maybe later
         task_metadata = {}
